@@ -1,6 +1,9 @@
-const { ApolloServer, ApolloError } = require('apollo-server');
+const { ApolloServer } = require('apollo-server');
+const { GraphQLScalarType } = require('graphql');
 
 const typeDefs = `
+  scalar DateTime
+
   enum PhotoCategory {
     SELFIE
     PORTRAIT
@@ -17,6 +20,7 @@ const typeDefs = `
     category: PhotoCategory!
     postedBy: User!
     taggedUsers: [User!]!
+    created: DateTime!
   }
 
   type User {
@@ -59,7 +63,8 @@ const photos = [
     "url": "http://honyahonya/img/0.jpg",
     "description": "sample sample",
     "category": "PORTRAIT",
-    "githubUser": "ichi"
+    "githubUser": "ichi",
+    "created": "3-28-1977",
   },
   {
     "id": "2",
@@ -67,7 +72,8 @@ const photos = [
     "url": "http://honyahonya/img/0.jpg",
     "description": "sample sample",
     "category": "PORTRAIT",
-    "githubUser": "ni"
+    "githubUser": "ni",
+    "created": "1-28-1977",
   },
   {
     "id": "3",
@@ -75,7 +81,8 @@ const photos = [
     "url": "http://honyahonya/img/0.jpg",
     "description": "sample sample",
     "category": "PORTRAIT",
-    "githubUser": "ni"
+    "githubUser": "ni",
+    "created": "2018-04-15T19:09:57.204Z",
   }
 ];
 
@@ -96,7 +103,8 @@ const resolvers = {
     postPhoto(parent, args) {
       let newPhoto = {
         id: _id++,
-        ...args.input
+        ...args.input,
+        created: new Date(),
       }
       photos.push(newPhoto)
       return newPhoto
@@ -125,7 +133,14 @@ const resolvers = {
         .map(tag => tag.userID)
         .map(photoID => photos.find(p => p.id === photoID))
     }
-  }
+  },
+  DateTime: new GraphQLScalarType({
+    name: 'DateTime',
+    description: 'A valid date time value',
+    parseValue: value => new Date(value),
+    serialize: value => new Date(value).toISOString(),
+    parseLiteral: ast => ast.value
+  })
 }
 
 const server = new ApolloServer({
