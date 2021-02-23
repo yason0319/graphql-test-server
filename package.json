@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "start": "nodemon -e js,json,graphql"
+    "start": "nodemon -e js,json,graphql",
+    "dev": "node index.js"
   },
   "main": "index.js",
   "devDependencies": {
