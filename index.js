@@ -15,6 +15,14 @@ const typeDefs = `
     name: String!
     description: String
     category: PhotoCategory!
+    postedBy: User!
+  }
+
+  type User {
+    githubLogin: ID!
+    name: String
+    avatar: String
+    postedPhotos: [Photo!]!
   }
 
   input PostPhotoInput {
@@ -34,7 +42,40 @@ const typeDefs = `
 `
 
 let _id = 0
-let photos = [];
+
+// sample data
+let users = [
+  { "githubLogin": "ichi", "name": "ichi san" },
+  { "githubLogin": "ni", "name": "ni san" },
+  { "githubLogin": "san", "name": "san san" }
+];
+
+const photos = [
+  {
+    "id": "1",
+    "name": "sample photo2",
+    "url": "http://honyahonya/img/0.jpg",
+    "description": "sample sample",
+    "category": "PORTRAIT",
+    "githubUser": "ichi"
+  },
+  {
+    "id": "2",
+    "name": "sample photo2",
+    "url": "http://honyahonya/img/0.jpg",
+    "description": "sample sample",
+    "category": "PORTRAIT",
+    "githubUser": "ni"
+  },
+  {
+    "id": "3",
+    "name": "sample photo2",
+    "url": "http://honyahonya/img/0.jpg",
+    "description": "sample sample",
+    "category": "PORTRAIT",
+    "githubUser": "ni"
+  }
+]
 
 const resolvers = {
   Query: {
@@ -50,11 +91,19 @@ const resolvers = {
       }
       photos.push(newPhoto)
       return newPhoto
-    }
+    },
   },
 
   Photo: {
-    url: parent => `http://honyahonya/img/${parent.id}.jpg`
+    url: parent => `http://honyahonya/img/${parent.id}.jpg`,
+    postedBy: parent => {
+      return users.find(u => u.githubLogin === parent.githubUser)
+    }
+  },
+  User: {
+    postedPhotos: parent => {
+      return photos.filter(p => p.githubUser === parent.githubLogin)
+    }
   }
 }
 
