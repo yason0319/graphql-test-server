@@ -16,6 +16,7 @@ const typeDefs = `
     description: String
     category: PhotoCategory!
     postedBy: User!
+    taggedUsers: [User!]!
   }
 
   type User {
@@ -23,6 +24,7 @@ const typeDefs = `
     name: String
     avatar: String
     postedPhotos: [Photo!]!
+    inPhotos: [Photo!]!
   }
 
   input PostPhotoInput {
@@ -44,7 +46,7 @@ const typeDefs = `
 let _id = 0
 
 // sample data
-let users = [
+const users = [
   { "githubLogin": "ichi", "name": "ichi san" },
   { "githubLogin": "ni", "name": "ni san" },
   { "githubLogin": "san", "name": "san san" }
@@ -75,6 +77,13 @@ const photos = [
     "category": "PORTRAIT",
     "githubUser": "ni"
   }
+];
+
+const tags = [
+  { "photoID": "1", "userID": "ichi" },
+  { "photoID": "2", "userID": "ichi" },
+  { "photoID": "2", "userID": "ni" },
+  { "photoID": "2", "userID": "san" },
 ]
 
 const resolvers = {
@@ -98,11 +107,23 @@ const resolvers = {
     url: parent => `http://honyahonya/img/${parent.id}.jpg`,
     postedBy: parent => {
       return users.find(u => u.githubLogin === parent.githubUser)
+    },
+    taggedUsers: parent => {
+      return tags
+        .filter(tag => tag.photoID === parent.id)
+        .map(tag => tag.userID)
+        .map(userID => users.find(u => u.githubLogin === userID))
     }
   },
   User: {
     postedPhotos: parent => {
       return photos.filter(p => p.githubUser === parent.githubLogin)
+    },
+    inPhotos: parent => {
+      return tags
+        .filter(tag => tag.photoID === parent.id)
+        .map(tag => tag.userID)
+        .map(photoID => photos.find(p => p.id === photoID))
     }
   }
 }
