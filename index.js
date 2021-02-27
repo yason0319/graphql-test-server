@@ -1,153 +1,144 @@
-const { ApolloServer } = require('apollo-server');
+const { ApolloServer } = require('apollo-server-express')
+const express = require('express');
+const expressPlayground = require('graphql-playground-middleware-express').default;
+const { readFileSync } = require('fs');
+const { MongoClient } = require('mongodb');
+require('dotenv').config();
+
 const { GraphQLScalarType } = require('graphql');
 
-const typeDefs = `
-  scalar DateTime
+const typeDefs = readFileSync('./typeDefs.graphql', 'utf-8');
 
-  enum PhotoCategory {
-    SELFIE
-    PORTRAIT
-    ACTION
-    LANDSCAPE
-    GRAPHIC
-  }
+const app = express();
 
-  type Photo {
-    id: ID!
-    url: String!
-    name: String!
-    description: String
-    category: PhotoCategory!
-    postedBy: User!
-    taggedUsers: [User!]!
-    created: DateTime!
-  }
+// let _id = 0
 
-  type User {
-    githubLogin: ID!
-    name: String
-    avatar: String
-    postedPhotos: [Photo!]!
-    inPhotos: [Photo!]!
-  }
+// // sample data
+// const users = [
+//   { "githubLogin": "ichi", "name": "ichi san" },
+//   { "githubLogin": "ni", "name": "ni san" },
+//   { "githubLogin": "san", "name": "san san" }
+// ];
 
-  input PostPhotoInput {
-    name: String!
-    category: PhotoCategory=PORTRAIT
-    description: String
-  }
+// const photos = [
+//   {
+//     "id": "1",
+//     "name": "sample photo2",
+//     "url": "http://honyahonya/img/0.jpg",
+//     "description": "sample sample",
+//     "category": "PORTRAIT",
 
-  type Query {
-    totalPhotos: Int!
-    allPhotos: [Photo!]!
-  }
+//     "githubUser": "ichi",
+//     "created": "3-28-1977",
+//   },
+//   {
+//     "id": "2",
+//     "name": "sample photo2",
+//     "url": "http://honyahonya/img/0.jpg",
+//     "description": "sample sample",
+//     "category": "PORTRAIT",
+//     "githubUser": "ni",
+//     "created": "1-28-1977",
+//   },
+//   {
+//     "id": "3",
+//     "name": "sample photo2",
+//     "url": "http://honyahonya/img/0.jpg",
+//     "description": "sample sample",
+//     "category": "PORTRAIT",
+//     "githubUser": "ni",
+//     "created": "2018-04-15T19:09:57.204Z",
+//   }
+// ];
 
-  type Mutation {
-    postPhoto(input: PostPhotoInput!): Photo!
-  }
-`
+// const tags = [
+//   { "photoID": "1", "userID": "ichi" },
+//   { "photoID": "2", "userID": "ichi" },
+//   { "photoID": "2", "userID": "ni" },
+//   { "photoID": "2", "userID": "san" },
+// ]
 
-let _id = 0
+// const resolvers = {
+//   Query: {
+//     totalPhotos: () => photos.length,
+//     allPhotos: () => photos
+//   },
 
-// sample data
-const users = [
-  { "githubLogin": "ichi", "name": "ichi san" },
-  { "githubLogin": "ni", "name": "ni san" },
-  { "githubLogin": "san", "name": "san san" }
-];
+//   Mutation: {
+//     postPhoto(parent, args) {
+//       let newPhoto = {
+//         id: _id++,
+//         ...args.input,
+//         created: new Date(),
+//       }
+//       photos.push(newPhoto)
+//       return newPhoto
+//     },
+//   },
 
-const photos = [
-  {
-    "id": "1",
-    "name": "sample photo2",
-    "url": "http://honyahonya/img/0.jpg",
-    "description": "sample sample",
-    "category": "PORTRAIT",
-    "githubUser": "ichi",
-    "created": "3-28-1977",
-  },
-  {
-    "id": "2",
-    "name": "sample photo2",
-    "url": "http://honyahonya/img/0.jpg",
-    "description": "sample sample",
-    "category": "PORTRAIT",
-    "githubUser": "ni",
-    "created": "1-28-1977",
-  },
-  {
-    "id": "3",
-    "name": "sample photo2",
-    "url": "http://honyahonya/img/0.jpg",
-    "description": "sample sample",
-    "category": "PORTRAIT",
-    "githubUser": "ni",
-    "created": "2018-04-15T19:09:57.204Z",
-  }
-];
+//   Photo: {
+//     url: parent => `http://honyahonya/img/${parent.id}.jpg`,
+//     postedBy: parent => {
+//       return users.find(u => u.githubLogin === parent.githubUser)
+//     },
+//     taggedUsers: parent => {
+//       return tags
+//         .filter(tag => tag.photoID === parent.id)
+//         .map(tag => tag.userID)
+//         .map(userID => users.find(u => u.githubLogin === userID))
+//     }
+//   },
+//   User: {
+//     postedPhotos: parent => {
+//       return photos.filter(p => p.githubUser === parent.githubLogin)
+//     },
+//     inPhotos: parent => {
+//       return tags
+//         .filter(tag => tag.photoID === parent.id)
+//         .map(tag => tag.userID)
+//         .map(photoID => photos.find(p => p.id === photoID))
+//     }
+//   },
+//   DateTime: new GraphQLScalarType({
+//     name: 'DateTime',
+//     description: 'A valid date time value',
+//     parseValue: value => new Date(value),
+//     serialize: value => new Date(value).toISOString(),
+//     parseLiteral: ast => ast.value
+//   })
+// }
 
-const tags = [
-  { "photoID": "1", "userID": "ichi" },
-  { "photoID": "2", "userID": "ichi" },
-  { "photoID": "2", "userID": "ni" },
-  { "photoID": "2", "userID": "san" },
-]
+// const server = new ApolloServer({
+//   typeDefs,
+//   resolvers
+// })
 
-const resolvers = {
-  Query: {
-    totalPhotos: () => photos.length,
-    allPhotos: () => photos
-  },
+// server
+//   .listen()
+//   .then(({url}) => console.log(`graphql server running at ${url}`));
 
-  Mutation: {
-    postPhoto(parent, args) {
-      let newPhoto = {
-        id: _id++,
-        ...args.input,
-        created: new Date(),
-      }
-      photos.push(newPhoto)
-      return newPhoto
-    },
-  },
+async function start() {
+  const app = express();
 
-  Photo: {
-    url: parent => `http://honyahonya/img/${parent.id}.jpg`,
-    postedBy: parent => {
-      return users.find(u => u.githubLogin === parent.githubUser)
-    },
-    taggedUsers: parent => {
-      return tags
-        .filter(tag => tag.photoID === parent.id)
-        .map(tag => tag.userID)
-        .map(userID => users.find(u => u.githubLogin === userID))
-    }
-  },
-  User: {
-    postedPhotos: parent => {
-      return photos.filter(p => p.githubUser === parent.githubLogin)
-    },
-    inPhotos: parent => {
-      return tags
-        .filter(tag => tag.photoID === parent.id)
-        .map(tag => tag.userID)
-        .map(photoID => photos.find(p => p.id === photoID))
-    }
-  },
-  DateTime: new GraphQLScalarType({
-    name: 'DateTime',
-    description: 'A valid date time value',
-    parseValue: value => new Date(value),
-    serialize: value => new Date(value).toISOString(),
-    parseLiteral: ast => ast.value
-  })
+  const MONGO_DB = process.env.DB_HOST;
+
+  const client = await MongoClient.connect(
+    MONGO_DB,
+    { useNewUrlParser: true }
+  )
+  const db = client.db();
+
+  const context = { db };
+
+  const server = new ApolloServer({ typeDefs, resolvers, context });
+
+  server.applyMiddleware({ app });
+  
+  app.get('/', (req, res) => res.end('welcome to the photoshare API'));
+  app.get('/playground', expressPlayground({ endpoint: '/graphql' }));
+  
+  app.listen({ port: 4000 }, () => 
+    console.log(`graphql server running at http://localhost:4000${server.graphqlPath}`));
 }
 
-const server = new ApolloServer({
-  typeDefs,
-  resolvers
-})
-
-server
-  .listen()
-  .then(({url}) => console.log(`graphql server running at ${url}`));
+start();
