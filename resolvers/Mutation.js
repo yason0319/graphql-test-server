@@ -1,13 +1,21 @@
-const { authorizeWithGithub } = require('../lib')
+const { authorizeWithGithub } = require('../lib');
+const fetch = require('node-fetch');
 
 module.exports = {
-  postPhoto(parent, args) {
-    let newPhoto = {
+  async postPhoto(parent, args, { db, currentUser }) {
+    if (!currentUser) {
+      throw new Error('only an authorized user can post a photo')
+    }
+
+    const newPhoto = {
       id: _id++,
       ...args.input,
       created: new Date(),
     }
-    photos.push(newPhoto)
+
+    const { insertedIds } = await db.collection('photos').insert(newPhoto);
+    newPhoto.id = insertedIds[0]
+
     return newPhoto
   },
 
@@ -46,5 +54,22 @@ module.exports = {
       .replaceOne({ githubLogin: login }, latestUserInfo, { upsert: true })
 
     return { user, token: access_token }
-  }
+  },
+
+  addFakeUsers: async (parent, { count }, { db }) => {
+    var randomUserApi = `https://randomuser.me/api/?results=${count}`
+
+    var { results } = await fetch(randomUserApi).then(res => res.json())
+
+    var users = results.map(r => ({
+      githubLogin: r.login.username,
+      name: `${r.name.first} ${r.name.last}`,
+      avatar: r.picture.thumbnail,
+      githubToken: r.login.sha1
+    }))
+
+    await db.collection('users').insert(users)
+
+    return users
+  },
 }
